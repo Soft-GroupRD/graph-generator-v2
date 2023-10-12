@@ -112,7 +112,7 @@ router.get('/', async (req, res) => {
 
       if (htmlExists && cssExists) {
 
-        const { width, height } = await fetch('http://localhost:8800/templates/imageSize?template=igwin&event=1289&participant=387')
+        const { width, height } = await fetch('http://localhost:3500/templates/imageSize?template=igwin&event=1289&participant=387')
           .then((response) => {
 
             if (!response.ok) {
@@ -131,7 +131,7 @@ router.get('/', async (req, res) => {
         const page = await browser.newPage();
 
         // URL de tu página HTML generada dinámicamente
-        const dynamicPageURL = `http://localhost:8800/templates/image?template=${template}&event=${event}&participant=${participant}`;
+        const dynamicPageURL = `http://localhost:3500/templates/image?template=${template}&event=${event}&participant=${participant}`;
 
         await page.goto(dynamicPageURL, { waitUntil: 'networkidle0' });
 
