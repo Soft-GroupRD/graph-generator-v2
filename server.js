@@ -7,7 +7,7 @@ const path = require('path');
 const igwinTemplate = require('./routes/templates/igwin')
 
 const app = express();
-const port = 5500;
+const port = 3500;
 
 const swaggerOptions = {
   swaggerDefinition: {
