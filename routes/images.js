@@ -5,6 +5,7 @@ const path = require('path');
 const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
 const router = express.Router();
+const fetch = require('node-fetch');
 
 /**
  * @swagger
