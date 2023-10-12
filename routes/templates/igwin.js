@@ -139,7 +139,7 @@ router.get('/image', async (req, res) => {
         .text(`${information.first_name} ${information.last_name}`)
         .css({ 'font-size': information.first_name.length + information.last_name.length > 14 ? '8em' : '10em' });
 
-      $('.posicion').text(`P${information.rank}`).attr('font-size: 12em;');
+      $('.posicion').text(`P${information.rank}`).attr('style', 'font-size: 12em;');
 
       $('.location-name').text(`${information.trackname}`);
 
