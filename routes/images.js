@@ -1,76 +1,27 @@
 // En tu archivo routes/usuarios.js
-const express = require('express');
-const fs = require('fs').promises;
-const path = require('path');
-const puppeteer = require('puppeteer');
-const cheerio = require('cheerio');
-const router = express.Router();
-const fetch = require('node-fetch');
+import { Router } from 'express';
+import { promises as fs } from 'fs';
+import { join } from 'path';
+import { launch } from 'puppeteer';
+import fetch, { FormData, File } from 'node-fetch';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-/**
- * @swagger
- * /images/{template}/{event}/{participant}:
- *   get:
- *     summary: Obtiene la imagen que coincide con los parámetros proporcionados
- *     parameters:
- *       - name: template
- *         in: path
- *         required: true
- *         type: string
- *         description: El valor del parámetro 'template'
- *       - name: event
- *         in: path
- *         required: true
- *         type: string
- *         description: El valor del parámetro 'event'
- *       - name: participant
- *         in: path
- *         required: true
- *         type: string
- *         description: El valor del parámetro 'participant'
- *     responses:
- *       200:
- *         description: Imagen obtenida exitosamente
- *       500:
- *         description: Error del servidor
- */
-router.get('/:template/:event/:participant', (req, res) => {
-  const { template, event, participant } = req.params; // Usa req.params para obtener los parámetros de la ruta
-
-  // Lógica para obtener la imagen basada en los parámetros
-
-  res.status(200).send(`Obteniendo imagen para: ${template}, ${event}, ${participant}`);
-});
-
-
-// Reemplaza las rutas de las fuentes en el contenido CSS
-function replaceFontPaths(cssContent, newFontPath) {
-  // Utiliza una expresión regular para encontrar y reemplazar las rutas de las fuentes
-  return cssContent.replace(/url\(['"]?(.*?)['"]?\)/g, (match, fontUrl) => {
-    // Reemplaza la ruta de la fuente con la nueva ruta
-    return `url(${newFontPath}${fontUrl})`;
-  });
-}
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const router = Router();
 
 
 /**
  * @swagger
- * /images/file:
+ * /images:
  *   get:
  *     summary: Obtiene la imagen según los parámetros de consulta
  *     parameters:
- *       - name: template
+ *       - name: file
  *         in: query
  *         type: string
- *         description: El valor del parámetro 'template'
- *       - name: event
- *         in: query
- *         type: string
- *         description: El valor del parámetro 'event'
- *       - name: participant
- *         in: query
- *         type: string
- *         description: El valor del parámetro 'participant'
+ *         description: Los valores del file (imagen) a buscar
  *     responses:
  *       200:
  *         description: Imagen obtenida exitosamente
@@ -94,7 +45,7 @@ router.get('/', async (req, res) => {
     }
 
     const fileName = `${template}-${event}-${participant}.png`;
-    const filePath = path.join(__dirname, '../images/igImages', fileName);
+    const filePath = join(__dirname, '../images/igImages', fileName);
 
     // Verifica si el archivo PNG ya existe
     const pngExists = await fs.access(filePath).then(() => true).catch(() => false);
@@ -104,8 +55,8 @@ router.get('/', async (req, res) => {
       res.sendFile(filePath);
     } else {
       // Buscamos el template
-      const htmlFilePath = path.join(__dirname, `../templates/${template}`, 'index.html');
-      const cssFilePath = path.join(__dirname, `../public/${template}`, "estilos.css");
+      const htmlFilePath = join(__dirname, `../public/${template}`, 'index.html');
+      const cssFilePath = join(__dirname, `../public/${template}`, "estilos.css");
 
       // Verifica si el html y el css existen
       const htmlExists = await fs.access(htmlFilePath).then(() => true).catch(() => false);
@@ -113,7 +64,8 @@ router.get('/', async (req, res) => {
 
       if (htmlExists && cssExists) {
 
-        const { width, height } = await fetch('http://localhost:3500/templates/imageSize?template=igwin&event=1289&participant=387')
+        // Obtenemos el tamaño relativo del template
+        const { width, height } = await fetch(`http://localhost:3500/template/${template}/imageSize?event=${event}&participant=${participant}`)
           .then((response) => {
 
             if (!response.ok) {
@@ -128,11 +80,11 @@ router.get('/', async (req, res) => {
             console.error(error)
           })
 
-        const browser = await puppeteer.launch({ headless: 'new', args: ['--disable-features=FontsOnDemand'], });
+        const browser = await launch({ headless: 'new', args: ['--disable-features=FontsOnDemand'], });
         const page = await browser.newPage();
 
         // URL de tu página HTML generada dinámicamente
-        const dynamicPageURL = `http://localhost:3500/templates/image?template=${template}&event=${event}&participant=${participant}`;
+        const dynamicPageURL = `http://localhost:3500/template/${template}/image?event=${event}&participant=${participant}`;
 
         await page.goto(dynamicPageURL, { waitUntil: 'networkidle0' });
 
@@ -142,7 +94,7 @@ router.get('/', async (req, res) => {
           // Si los valores son números válidos los seteamos
           await page.setViewport({ width: width, height: height });
         } else {
-          console.log('Los valores de ancho y alto no son números válidos.');
+          res.status(400).send({ message: "Los valores de ancho y alto no son números válidos." })
         }
 
         // Captura una captura de pantalla y conviértela en formato base64
@@ -160,171 +112,6 @@ router.get('/', async (req, res) => {
         res.end(Buffer.from(screenshot, 'base64'));
         */
         res.sendFile(filePath);
-
-
-        //////////////////////////////
-        /////// Antigua logica ///////
-        //////////////////////////////
-
-        /*
-        // Lee el contenido de los archivos HTML y CSS de manera asíncrona
-        const htmlContent = await fs.readFile(htmlFilePath, 'utf-8')
-        const cssContent = await fs.readFile(cssFilePath, 'utf-8')
-
-        // Modifica las rutas de las fuentes en el CSS
-        const newFontPath = '/fonts'; // Cambia esta ruta a la que necesites
-        const modifiedCSS = replaceFontPaths(cssContent, newFontPath);
-
-
-        const information = await fetch(`http://20.121.40.254:1337/api/v1/external/getResultsByEventId/${event}`)
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("Fallo al buscar el evento");
-            }
-            return response.json();
-          })
-          .then((data) => {
-
-            const filterData = data.find(item => item.individual_id.toString() === participant);
-
-            if (!filterData) {
-              throw new Error("No se encontró el participante");
-            }
-
-            return filterData
-          })
-          .catch((error) => {
-            console.error("Ocurrió un error:", error);
-            // Manejo de errores
-          });
-
-        const background = await fetch('https://api4.gpesportsrd.com/fieldValues?field_id=28')
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("No se encontró ninguna imagen");
-            }
-            return response.json();
-          })
-          .then((data) => {
-            const findItem = data.data.find(item => item.item_id === information.team_id.toString());
-
-            if (!findItem) {
-              throw new Error("No se encontró la imagen del equipo");
-            }
-
-            return findItem
-          })
-          .catch((error) => {
-            console.error("Ocurrió un error:", error);
-            // Manejo de errores
-          });
-
-        const brand = await fetch('https://api4.gpesportsrd.com/fieldValues?field_id=52')
-          .then((response) => {
-
-            if (!response.ok) {
-              throw new Error("No se encontró ninguna imagen")
-            }
-
-            return response.json();
-          })
-          .then((data) => {
-            const findItem = data.data.find(item => item.item_id === information.team_id.toString())
-
-            if (!findItem) {
-              throw new Error("No se encontró la banda del equipo");
-            }
-
-            return findItem
-          }).catch((error) => {
-            console.error("Ocurrió un error:", error);
-            // Manejo de errores
-          })
-
-
-        // Carga el HTML en Cheerio
-        const $ = cheerio.load(htmlContent);
-
-        // Manipula el HTML como lo harías con jQuery
-        $('.siglas-categoria').text(information.Categoria.split('-')[0].trim());
-
-        $('.nombre-corredor')
-          .text(`${information.first_name} ${information.last_name}`)
-          .css({ 'font-size': information.first_name.length + information.last_name.length > 14 ? '8em' : '10em' });
-
-        $('.posicion').text(`P${information.rank}`);
-
-        $('.location-name').text(`${information.trackname}`);
-
-        $('.img-flag').attr('src', `https://gpesportsrd.com/images/templates/country_48x76/${information.trackid}.png`);
-
-        $('.img-corredor').remove();
-
-        $('.brand-image').attr('src', `https://gpesportsrd.com/${brand.value}`);
-
-        $('.img-feed').attr('src', `https://gpesportsrd.com/${background.value}`);
-
-        // Selecciona el background
-        const $img = $('.img-feed');
-
-        // Obtener el valor de los atributos width y height
-        const width = $img.attr('width');
-        const height = $img.attr('height');
-
-        // Convierte las cadenas en números
-        const widthNumber = parseInt(width, 10); // Convierte a número base 10
-        const heightNumber = parseInt(height, 10); // Convierte a número base 10
-
-        // Agregamos el estilo
-        // $('<link>').attr('rel', `stylesheet`).attr('href', cssFilePath);
-
-        // $('<style>').text(cssContent).appendTo('head');
-
-        $('<style>').text(modifiedCSS).appendTo('head');
-
-        // Imprime el HTML modificado
-        const modifiedHTML = $.html();
-
-        // Inicializa Puppeteer
-        const browser = await puppeteer.launch({ headless: 'new', args: ['--disable-features=FontsOnDemand'], });
-        const page = await browser.newPage();
-
-
-        // Verifica si las conversiones son válidas
-        if (!isNaN(widthNumber) && !isNaN(heightNumber)) {
-          // Si los valores son números válidos los seteamos
-          await page.setViewport({ width: widthNumber, height: heightNumber });
-        } else {
-          console.log('Los valores de ancho y alto no son números válidos.');
-        }
-
-        // Después de crear la página con page.setContent()
-        await page.addStyleTag({ path: cssFilePath }); // Asegúrate de que 'cssFilePath' sea la ruta al archivo CSS
-
-
-        // Configura el contenido de la página con el HTML modificado
-        await page.setContent(modifiedHTML);
-
-        // Espera a que todas las fuentes estén cargadas en la página
-        await page.waitForFunction(() => {
-          const fonts = document.fonts;
-          return Array.from(fonts).every(font => font.status === 'loaded');
-        });
-
-        // Captura una captura de pantalla de la página con los estilos CSS aplicados
-        await page.screenshot({ path: filePath, type: 'png' });
-
-        // Cierra el navegador de Puppeteer
-        await browser.close();
-
-        // Envía el archivo HTML (Es para validar que se cree correctamente)
-        // res.send(modifiedHTML);
-
-        // res.send(htmlContent2);
-
-        // Envía el archivo PNG generado como respuesta
-        res.sendFile(filePath);
-        */
       } else {
         res.status(404).send({ message: "No se encontró el template" })
       }
@@ -335,6 +122,377 @@ router.get('/', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /images/{template}/{event}/{participant}:
+ *   post:
+ *     summary: Envia la imagen al bot
+ *     description: Envia la imagen del evento con los respectivos datos al bot
+ *     parameters:
+ *       - name: template
+ *         in: path
+ *         required: true
+ *         type: string
+ *         description: El template de la imagen
+ *       - name: event
+ *         in: path
+ *         required: true
+ *         type: string
+ *         description: El valor del evento
+ *       - name: participant
+ *         in: path
+ *         required: true
+ *         type: string
+ *         description: El valor del participante
+ *     responses:
+ *       200:
+ *         description: La imagen fue enviada exitosamente al bot
+ *       400:
+ *         description: Datos insuficientes o malformados en la solicitud
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.post('/:template/:event/:participant', async (req, res) => {
+  try {
+    // Extraemos los datos para poder traer la info
+    const { template, event, participant } = req.params;
+
+    // Manejamos el error si falta algun dato
+    if (!template || !event || !participant) {
+      res.status(400).json(
+        {
+          "error": "No se pueden procesar los datos de la solicitud debido a campos faltantes o malformados.",
+          "details": {
+            "template": !template ? "Falta este campo" : template,
+            "event": !event ? "Falta este campo" : event,
+            "participant": !participant ? "Falta este campo" : participant
+          }
+        }
+      );
+    }
+
+    // Validamos que el evento no sea cero, pero los participantes si
+    // Para enviarle a todos los participantes de un evento
+    if (event !== "0" && participant === "0") {
+      try {
+        // Traemos un evento a la vez
+        const response = await fetch(`http://20.121.40.254:1337/api/v1/external/getResultsByEventId/${event}`);
+
+        // Manejamos el error si tenemos algun problema en la consulta
+        if (!response.ok) {
+          throw new Error("Falló la consulta del evento");
+        }
+
+        // Almacenamos los datos
+        const data = await response.json();
+
+        // Inicializamos la lista de participantes vacia
+        const listsOfParticipants = []
+
+        // Validamos si hay datos en el evento
+        if (data && data.length > 0) {
+
+          // Recorremos el evento
+          for (const currentParticipant of data) {
+            try {
+              // Generamos o traemos la imagen del participante
+              const responseImage = await fetch(`http://localhost:3500/images?file=${template}-${event}-${currentParticipant.individual_id}.png`)
+
+              let errors = []
+
+              // Manejamos el error
+              if (!responseImage.ok) {
+                // throw new Error("No se encontró ningun participante con ese id");
+                errors.push("No se encontró ningun participante con ese id");
+                continue;
+              }
+
+              // Obtenemos la informacion (numero telefonico) del participante
+              const responseParticipant = await fetch(`http://20.121.40.254:1337/api/v1/external/getusers?individual_id=${currentParticipant.individual_id}&type=private`)
+
+              if (!responseParticipant.ok) {
+                errors.push("No se encontró informacion del participante");
+                continue;
+              }
+
+              const participantData = await responseParticipant.json()
+
+              // const imageBase64 = imageData.toString('base64');
+              const fromData = {
+                participant: {
+                  image: `http://localhost:3500/images?file=${template}-${event}-${currentParticipant.individual_id}.png`,
+                  phone: participantData[0].celular,
+                  name: currentParticipant.first_name,
+                  eventName: currentParticipant.trackshortname
+                }
+              };
+
+              // Enviamos la imagen mediante bot
+              const responseBotMessage = await fetch('http://localhost:5000/receive-image-and-json', {
+                method: 'POST',
+                body: JSON.stringify(fromData),
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                timeout: 60000,
+              });
+
+              if (!responseBotMessage.ok) {
+                errors.push("No se pudo enviar la imagen");
+                continue;
+              }
+
+              const botMessageData = await responseBotMessage.json()
+
+              // Agregamos el id del participante y la url de la imagen para luego manipularla
+              listsOfParticipants.push({
+                participant_id: currentParticipant.individual_id,
+                dataSent: fromData,
+                bot_message: botMessageData,
+                bot_errosr: errors
+              })
+
+            } catch (error) {
+              // Respondemos con un error si algo falla
+              console.error("Ocurrió un error:", error);
+              return res.status(500).json({ error: "Fallo en la búsqueda de los participantes" });
+            }
+          }
+
+          // Agregamos el evento con la data de los participantes
+          arrayOfEvents.push({
+            event: currentEvent.id,
+            participants: listsOfParticipants
+          })
+        } else {
+          res.status(404).json({ "not_found": "No se encontró la informacion del evento" })
+        }
+      } catch (error) {
+        console.error("Ocurrió un error:", error);
+        // Manejo de errores
+        return res.status(500).json({ error: "Fallo en la búsqueda de los últimos eventos" });
+      }
+    }
+
+    // Validamos que el evento y el participante no sean iguales a 0
+    if (event !== "0" && participant !== "0") {
+      const responseImage = await fetch(`http://localhost:3500/images?file=${template}-${event}-${participant}.png`)
+
+      let errorImage = "None"
+
+      // Manejamos el error
+      if (!responseImage.ok) {
+        // throw new Error("No se encontró ningun participante con ese id");
+        errorImage = "No se encontró ningun participante con ese id";
+      }
+
+      // Obtenemos la informacion (numero telefonico) del participante
+      const responseParticipant = await fetch(`http://20.121.40.254:1337/api/v1/external/getusers?individual_id=${participant}&type=private`)
+
+      let errorParticipantInformation = "None"
+
+      if (!responseParticipant.ok) {
+        // throw new Error("No se encontró informacion del participante");
+        errorParticipantInformation = "No se encontró informacion del participante"
+      }
+
+      const participantData = await responseParticipant.json()
+
+      const response = await fetch(`http://20.121.40.254:1337/api/v1/external/getResultsByEventId/${event}`);
+
+      // Manejamos el error si tenemos algun problema en la consulta
+      if (!response.ok) {
+        throw new Error("Falló la consulta del evento");
+      }
+
+      // Almacenamos los datos
+      const data = await response.json();
+
+      const findParticipant = await data.find(part => part.individual_id.toString() === participant)
+
+      if (!findParticipant) {
+        throw new Error("No de encontró el participante");
+      }
+
+      // const imageBase64 = imageData.toString('base64');
+      const fromData = {
+        participant: {
+          image: `http://localhost:3500/images?file=${template}-${event}-${participant}.png`,
+          phone: participantData[0].celular,
+          name: findParticipant.first_name,
+          eventName: findParticipant.trackshortname
+        }
+      };
+
+
+      // Enviamos la imagen mediante bot
+      const responseBotMessage = await fetch('http://localhost:5000/receive-image-and-json', {
+        method: 'POST',
+        body: JSON.stringify(fromData),
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        timeout: 60000,
+      });
+
+      let errorBotMessage = "None"
+
+      if (!responseBotMessage.ok) {
+        // throw new Error("No se pudo enviar la imagen");
+        errorBotMessage = "No se pudo enviar la imagen"
+      }
+
+      const botMessageData = await responseBotMessage.json()
+
+      res.status(200).json({
+        participant_id: findParticipant.individual_id,
+        dataSent: fromData,
+        bot_message: botMessageData,
+        bot_errosr: {
+          error_image: errorImage,
+          error_participant: errorParticipantInformation,
+          error_bot: errorBotMessage
+        }
+      });
+    }
+
+    // Validamos que el evento y el participante sean 0, para enviarlo a todos
+    if (event === "0" && participant === "0") {
+      // Verificamos los eventos, tomamos hace 144 horas (6 días) y que aun le queden un maximo de 2 horas
+      const eventsFinished = await fetch('https://gpesportsrd.com/gpt/api/latestevents.php?before=144&future=2')
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("No se encontró ninguna imagen");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          return data
+        })
+        .catch((error) => {
+          console.error("Ocurrió un error:", error);
+          // Manejo de errores
+          res.status(500).json({ error: "Fallo en la busqueda de los ultimos eventos" });
+        });
+
+      // Validamos si sí hay eventos
+      if (eventsFinished) {
+        // Inicializamos la lista de eventos
+        const arrayOfEvents = [];
+
+        // Usamos un bucle for...of para poder utilizar 'await'
+        for (const currentEvent of eventsFinished) {
+          try {
+            // Traemos un evento a la vez
+            const response = await fetch(`http://20.121.40.254:1337/api/v1/external/getResultsByEventId/${currentEvent.id}`);
+
+            // Manejamos el error si tenemos algun problema en la consulta
+            if (!response.ok) {
+              throw new Error("Falló la consulta del evento");
+            }
+
+            // Almacenamos los datos
+            const data = await response.json();
+
+            // Inicializamos la lista de participantes vacia
+            const listsOfParticipants = []
+
+            // Validamos si hay datos en el evento
+            if (data && data.length > 0) {
+
+              // Recorremos el evento
+              for (const currentParticipant of data) {
+                try {
+                  // Generamos o traemos la imagen del participante
+                  const responseImage = await fetch(`http://localhost:3500/images?file=${template}-${currentEvent.id}-${currentParticipant.individual_id}.png`)
+
+                  let errors = []
+
+                  // Manejamos el error
+                  if (!responseImage.ok) {
+                    // throw new Error("No se encontró ningun participante con ese id");
+                    errors.push("No se encontró ningun participante con ese id");
+                    continue;
+                  }
+
+                  // Obtenemos la informacion (numero telefonico) del participante
+                  const responseParticipant = await fetch(`http://20.121.40.254:1337/api/v1/external/getusers?individual_id=${currentParticipant.individual_id}&type=private`)
+
+                  if (!responseParticipant.ok) {
+                    errors.push("No se encontró informacion del participante");
+                    continue;
+                  }
+
+                  const participantData = await responseParticipant.json()
+
+                  // const imageBase64 = imageData.toString('base64');
+                  const fromData = {
+                    participant: {
+                      image: `http://localhost:3500/images?file=${template}-${currentEvent.id}-${currentParticipant.individual_id}.png`,
+                      phone: participantData[0].celular,
+                      name: currentParticipant.first_name,
+                      eventName: currentParticipant.trackshortname
+                    }
+                  };
+
+                  // Enviamos la imagen mediante bot
+                  const responseBotMessage = await fetch('http://localhost:5000/receive-image-and-json', {
+                    method: 'POST',
+                    body: JSON.stringify(fromData),
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    timeout: 60000,
+                  });
+
+                  if (!responseBotMessage.ok) {
+                    errors.push("No se pudo enviar la imagen");
+                    continue;
+                  }
+
+                  const botMessageData = await responseBotMessage.json()
+
+                  // Agregamos el id del participante y la url de la imagen para luego manipularla
+                  listsOfParticipants.push({
+                    participant_id: currentParticipant.individual_id,
+                    dataSent: fromData,
+                    bot_message: botMessageData,
+                    bot_errosr: errors
+                  })
+
+                } catch (error) {
+                  // Respondemos con un error si algo falla
+                  console.error("Ocurrió un error:", error);
+                  return res.status(500).json({ error: "Fallo en la búsqueda de los participantes" });
+                }
+              }
+
+              // Agregamos el evento con la data de los participantes
+              arrayOfEvents.push({
+                event: currentEvent.id,
+                participants: listsOfParticipants
+              })
+            } else {
+              res.status(404).json({ "not_found": "No se encontró la informacion del evento" })
+            }
+          } catch (error) {
+            console.error("Ocurrió un error:", error);
+            // Manejo de errores
+            return res.status(500).json({ error: "Fallo en la búsqueda de los últimos eventos" });
+          }
+        }
+
+        res.status(200).json(arrayOfEvents);
+      } else {
+        res.status(404).json({ error: "No se encontraron eventos" });
+      }
+    }
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
 
 // Exporta el enrutador para su uso en otro lugar
-module.exports = router;
+export default router;

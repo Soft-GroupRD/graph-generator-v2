@@ -1,36 +1,30 @@
-const express = require('express');
-const swaggerUi = require('swagger-ui-express');
-const swaggerJSDoc = require('swagger-jsdoc');
-const imageRoutes = require('./routes/images');
-const path = require('path');
+import express from 'express';
+import { serve, setup } from 'swagger-ui-express';
+import swaggerJSDoc from 'swagger-jsdoc';
+import imageRoutes from './routes/images.js';
+import { join } from 'path';
+import igwinTemplate from './routes/templates/igwin.js';
 
-const igwinTemplate = require('./routes/templates/igwin')
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+import swaggerSpec from './swagger.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const port = 3500;
 
-const swaggerOptions = {
-  swaggerDefinition: {
-    info: {
-      title: 'Mi API',
-      version: '1.0.0',
-      description: 'Documentación de mi API con Swagger',
-    },
-  },
-  apis: ['routes/*.js'], // Rutas donde se encuentran tus definiciones de rutas de Express
-};
+app.use('/api-docs', serve, setup(swaggerSpec));
 
-const swaggerSpec = swaggerJSDoc(swaggerOptions);
+app.use(express.static(join(__dirname, 'public')));
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/fonts', express.static(path.join(__dirname, 'public')));
+app.use('/fonts', express.static(join(__dirname, 'public')));
 
 app.use('/images', imageRoutes)
 
-app.use('/templates', igwinTemplate)
+app.use('/template/igwin', igwinTemplate)
 
 app.listen(port, () => {
   console.log(`Servidor Node.js escuchando en el puerto ${port}`);

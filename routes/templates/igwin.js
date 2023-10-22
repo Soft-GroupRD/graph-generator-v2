@@ -1,16 +1,30 @@
 // En tu archivo routes/usuarios.js
-const express = require('express');
-const fs = require('fs').promises;
-const path = require('path');
-const cheerio = require('cheerio');
-const router = express.Router();
-const fetch = require('node-fetch');
+import { Router } from 'express';
+import { promises as fs } from 'fs';
+import { join } from 'path';
+import { load } from 'cheerio';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import fetch from 'node-fetch';
+
+const router = Router();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * @swagger
- * /templates/image:
+ * /template/igwin/image:
  *   get:
- *     summary: Obtiene la imagen que coincide con los parámetros proporcionados
+ *     summary: Obtiene la imagen según los parámetros de consulta
+ *     parameters:
+ *       - name: event
+ *         in: query
+ *         type: string
+ *         description: El valor del parámetro 'event'
+ *       - name: participant
+ *         in: query
+ *         type: string
+ *         description: El valor del parámetro 'participant'
  *     responses:
  *       200:
  *         description: Imagen obtenida exitosamente
@@ -19,16 +33,16 @@ const fetch = require('node-fetch');
  */
 router.get('/image', async (req, res) => {
   try {
-    const { template, event, participant } = req.query
+    const { event, participant } = req.query
 
-    if (!template || !event || !participant) {
+    if (!event || !participant) {
       res.status(400).json({ error: "Faltan parámetros: template, event, participant" });
       return;
     }
 
     // Buscamos el template
-    const htmlFilePath = path.join(__dirname, `../../public/${template}`, 'index.html');
-    const cssFilePath = path.join(__dirname, `../../public/${template}`, "estilos.css");
+    const htmlFilePath = join(__dirname, `../../public/igwin`, 'index.html');
+    const cssFilePath = join(__dirname, `../../public/igwin`, "estilos.css");
 
     // Verifica si el html y el css existen
     const htmlExists = await fs.access(htmlFilePath).then(() => true).catch(() => false);
@@ -71,7 +85,7 @@ router.get('/image', async (req, res) => {
         })
         .then((data) => {
 
-          const team_id = information?.team_id?.toString() || "11"
+          const team_id = information?.team_id?.toString() || "10"
 
           const findItem = data.data.find(item => item.item_id === team_id);
 
@@ -97,7 +111,7 @@ router.get('/image', async (req, res) => {
         })
         .then((data) => {
 
-          const team_id = information?.team_id?.toString() || "11"
+          const team_id = information?.team_id?.toString() || "10"
 
           const findItem = data.data.find(item => item.item_id === team_id)
 
@@ -113,7 +127,7 @@ router.get('/image', async (req, res) => {
 
 
       // Carga el HTML en Cheerio
-      const $ = cheerio.load(htmlContent);
+      const $ = load(htmlContent);
 
       const categoriName = information.Categoria.split('-')[0].trim()
 
@@ -141,7 +155,7 @@ router.get('/image', async (req, res) => {
 
       $('.posicion').text(`P${information.rank}`).attr('style', 'font-size: 12em;');
 
-      $('.location-name').text(`${information.trackname}`);
+      $('.location-name').text(`${information.trackshortname}`);
 
       $('.img-flag').attr('src', `https://gpesportsrd.com/images/templates/country_48x76/${information.trackid}.png`);
 
@@ -169,26 +183,35 @@ router.get('/image', async (req, res) => {
 
 /**
  * @swagger
- * /templates/imageSize:
+ * /template/igwin/imageSize:
  *   get:
- *     summary: Obtiene la imagen que coincide con los parámetros proporcionados
+ *     summary: Obtiene el tamaño del template
+ *     parameters:
+ *       - name: event
+ *         in: query
+ *         type: string
+ *         description: El valor del parámetro 'event'
+ *       - name: participant
+ *         in: query
+ *         type: string
+ *         description: El valor del parámetro 'participant'
  *     responses:
  *       200:
- *         description: Imagen obtenida exitosamente
+ *         description: Tamaño del template obtenido con exito
  *       500:
  *         description: Error del servidor
  */
 router.get('/imageSize', async (req, res) => {
   try {
-    const { template, event, participant } = req.query
+    const { event, participant } = req.query
 
-    if (!template || !event || !participant) {
+    if (!event || !participant) {
       res.status(400).json({ error: "Faltan parámetros: template, event, participant" });
       return;
     }
 
     // Buscamos el template
-    const htmlFilePath = path.join(__dirname, `../../public/${template}`, 'index.html');
+    const htmlFilePath = join(__dirname, `../../public/igwin`, 'index.html');
 
     // Verifica si el html y el css existen
     const htmlExists = await fs.access(htmlFilePath).then(() => true).catch(() => false);
@@ -220,7 +243,7 @@ router.get('/imageSize', async (req, res) => {
           // Manejo de errores
         });
 
-      const background = await fetch('https://api4.gpesportsrd.com/fieldValues?field_id=28')
+      const background = await fetch('https://api4.gpesportsrd.com/fieldValues?field_id=29')
         .then((response) => {
           if (!response.ok) {
             throw new Error("No se encontró ninguna imagen");
@@ -246,7 +269,7 @@ router.get('/imageSize', async (req, res) => {
 
 
       // Carga el HTML en Cheerio
-      const $ = cheerio.load(htmlContent);
+      const $ = load(htmlContent);
 
       $('.img-feed').attr('src', `https://gpesportsrd.com/${background.value}`);
 
@@ -278,4 +301,4 @@ router.get('/imageSize', async (req, res) => {
 
 
 // Exporta el enrutador para su uso en otro lugar
-module.exports = router;
+export default router;

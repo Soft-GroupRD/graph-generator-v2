@@ -1,4 +1,4 @@
-const swaggerJSDoc = require('swagger-jsdoc');
+import swaggerJSDoc from 'swagger-jsdoc';
 
 const options = {
   swaggerDefinition: {
@@ -9,9 +9,9 @@ const options = {
     },
     basePath: '/',
   },
-  apis: ['./routes/*.js'], // Rutas donde se encuentran tus definiciones de rutas de Express
+  apis: ['./routes/*.js', './routes/templates/*.js'], // Rutas donde se encuentran tus definiciones de rutas de Express
 };
 
 const swaggerSpec = swaggerJSDoc(options);
 
-module.exports = swaggerSpec;
+export default swaggerSpec;
