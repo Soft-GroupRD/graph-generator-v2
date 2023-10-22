@@ -260,10 +260,7 @@ router.post('/:template/:event/:participant', async (req, res) => {
           }
 
           // Agregamos el evento con la data de los participantes
-          arrayOfEvents.push({
-            event: currentEvent.id,
-            participants: listsOfParticipants
-          })
+          res.status(200).json(listsOfParticipants)
         } else {
           res.status(404).json({ "not_found": "No se encontró la informacion del evento" })
         }
