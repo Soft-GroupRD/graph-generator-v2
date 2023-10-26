@@ -125,7 +125,7 @@ router.get('/', async (req, res) => {
 /**
  * @swagger
  * /images/{template}/{event}/{participant}:
- *   post:
+ *   get:
  *     summary: Envia la imagen al bot
  *     description: Envia la imagen del evento con los respectivos datos al bot
  *     parameters:
@@ -152,7 +152,7 @@ router.get('/', async (req, res) => {
  *       500:
  *         description: Error interno del servidor
  */
-router.post('/:template/:event/:participant', async (req, res) => {
+router.get('/:template/:event/:participant', async (req, res) => {
   try {
     // Extraemos los datos para poder traer la info
     const { template, event, participant } = req.params;
@@ -223,6 +223,7 @@ router.post('/:template/:event/:participant', async (req, res) => {
                   image: `http://localhost:3500/images?file=${template}-${event}-${currentParticipant.individual_id}.png`,
                   phone: participantData[0].celular,
                   name: currentParticipant.first_name,
+                  rank: currentParticipant.rank,
                   eventName: currentParticipant.trackshortname
                 }
               };
@@ -317,6 +318,7 @@ router.post('/:template/:event/:participant', async (req, res) => {
           image: `http://localhost:3500/images?file=${template}-${event}-${participant}.png`,
           phone: participantData[0].celular,
           name: findParticipant.first_name,
+          rank: findParticipant.rank,
           eventName: findParticipant.trackshortname
         }
       };
