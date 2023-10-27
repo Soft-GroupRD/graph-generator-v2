@@ -163,6 +163,7 @@ justify-content: center;
   justify-content: center;
   align-items: center;
   gap: 1em;
+  width: 70%;
 }
 
 .categoria .parrafo-categoria {
@@ -180,6 +181,11 @@ justify-content: center;
   /* padding-left: 0.5em; */
   text-transform: uppercase;
 }
+
+.siglas-categoria {
+  width: 100%;
+}
+
 .border-blanco {
   width: 5px;
   height: 40px;
