@@ -42,83 +42,166 @@ router.get('/', async (req, res) => {
 
     const [template, event, participant] = file.replace(".png", "").split("-")
 
-    if (!template || !event || !participant) {
-      res.status(400).json({ error: "Faltan parámetros: template, event, participant" });
-      return;
-    }
+    if (template === "igwin") {
+      if (!template || !event || !participant) {
+        res.status(400).json({ error: "Faltan parámetros: template, event, participant" });
+        return;
+      }
 
-    const fileName = `${template}-${event}-${participant}.png`;
-    const filePath = join(__dirname, '../images/igImages', fileName);
+      const fileName = `${template}-${event}-${participant}.png`;
+      const filePath = join(__dirname, '../images/igImages', fileName);
 
-    // Verifica si el archivo PNG ya existe
-    const pngExists = await fs.access(filePath).then(() => true).catch(() => false);
+      // Verifica si el archivo PNG ya existe
+      const pngExists = await fs.access(filePath).then(() => true).catch(() => false);
 
-    if (pngExists) {
-      // Si el archivo PNG existe, enviarlo como respuesta
-      res.sendFile(filePath);
-    } else {
-      // Buscamos el template
-      const htmlFilePath = join(__dirname, `../public/${template}`, 'index.html');
-      const cssFilePath = join(__dirname, `../public/${template}`, "estilos.css");
-
-      // Verifica si el html y el css existen
-      const htmlExists = await fs.access(htmlFilePath).then(() => true).catch(() => false);
-      const cssExists = await fs.access(cssFilePath).then(() => true).catch(() => false);
-
-      if (htmlExists && cssExists) {
-
-        // Obtenemos el tamaño relativo del template
-        const { width, height } = await fetch(`http://localhost:3500/template/${template}/imageSize?event=${event}&participant=${participant}`)
-          .then((response) => {
-
-            if (!response.ok) {
-              throw new Error("Falló la consulta")
-            }
-            return response.json();
-          })
-          .then((data) => {
-            return data
-          })
-          .catch((error) => {
-            console.error(error)
-          })
-
-        const browser = await launch({ headless: 'new', args: ['--disable-features=FontsOnDemand'], });
-        const page = await browser.newPage();
-
-        // URL de tu página HTML generada dinámicamente
-        const dynamicPageURL = `http://localhost:3500/template/${template}/image?event=${event}&participant=${participant}`;
-
-        await page.goto(dynamicPageURL, { waitUntil: 'networkidle0' });
-
-
-        // Verifica si las conversiones son válidas
-        if (!isNaN(width) && !isNaN(height)) {
-          // Si los valores son números válidos los seteamos
-          await page.setViewport({ width: width, height: height });
-        } else {
-          res.status(400).send({ message: "Los valores de ancho y alto no son números válidos." })
-        }
-
-        // Captura una captura de pantalla y conviértela en formato base64
-        // const screenshot = await page.screenshot({ encoding: 'base64' });
-        await page.screenshot({ path: filePath, type: 'png' });
-
-        await browser.close();
-
-        // Devuelve la captura de pantalla como respuesta
-        /*
-        res.writeHead(200, {
-          'Content-Type': 'image/png',
-          'Content-Length': screenshot.length
-        });
-        res.end(Buffer.from(screenshot, 'base64'));
-        */
+      if (pngExists) {
+        // Si el archivo PNG existe, enviarlo como respuesta
         res.sendFile(filePath);
       } else {
-        res.status(404).send({ message: "No se encontró el template" })
+        // Buscamos el template
+        const htmlFilePath = join(__dirname, `../public/${template}`, 'index.html');
+        const cssFilePath = join(__dirname, `../public/${template}`, "estilos.css");
+
+        // Verifica si el html y el css existen
+        const htmlExists = await fs.access(htmlFilePath).then(() => true).catch(() => false);
+        const cssExists = await fs.access(cssFilePath).then(() => true).catch(() => false);
+
+        if (htmlExists && cssExists) {
+
+          // Obtenemos el tamaño relativo del template
+          const { width, height } = await fetch(`http://localhost:3500/template/${template}/imageSize?event=${event}&participant=${participant}`)
+            .then((response) => {
+
+              if (!response.ok) {
+                throw new Error("Falló la consulta")
+              }
+              return response.json();
+            })
+            .then((data) => {
+              return data
+            })
+            .catch((error) => {
+              console.error(error)
+            })
+
+          const browser = await launch({ headless: 'new', args: ['--disable-features=FontsOnDemand'], });
+          const page = await browser.newPage();
+
+          // URL de tu página HTML generada dinámicamente
+          const dynamicPageURL = `http://localhost:3500/template/${template}/image?event=${event}&participant=${participant}`;
+
+          await page.goto(dynamicPageURL, { waitUntil: 'networkidle0' });
+
+
+          // Verifica si las conversiones son válidas
+          if (!isNaN(width) && !isNaN(height)) {
+            // Si los valores son números válidos los seteamos
+            await page.setViewport({ width: width, height: height });
+          } else {
+            res.status(400).send({ message: "Los valores de ancho y alto no son números válidos." })
+          }
+
+          // Captura una captura de pantalla y conviértela en formato base64
+          // const screenshot = await page.screenshot({ encoding: 'base64' });
+          await page.screenshot({ path: filePath, type: 'png' });
+
+          await browser.close();
+
+          // Devuelve la captura de pantalla como respuesta
+          /*
+          res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Content-Length': screenshot.length
+          });
+          res.end(Buffer.from(screenshot, 'base64'));
+          */
+          res.sendFile(filePath);
+        } else {
+          res.status(404).send({ message: "No se encontró el template" })
+        }
       }
+    } else if (template === "seasonpoints") {
+      if (!template || !event) {
+        res.status(400).json({ error: "Faltan parámetros: template, event" });
+        return;
+      }
+
+      const fileName = `${template}-${event}.png`;
+      const filePath = join(__dirname, '../images/seasonPointsImages', fileName);
+
+      // Verifica si el archivo PNG ya existe
+      const pngExists = await fs.access(filePath).then(() => true).catch(() => false);
+
+      if (pngExists) {
+        // Si el archivo PNG existe, enviarlo como respuesta
+        res.sendFile(filePath);
+      } else {
+        // Buscamos el template
+        const htmlFilePath = join(__dirname, `../public/${template}`, 'index.html');
+        const cssFilePath = join(__dirname, `../public/${template}/css`, "estilos.css");
+
+        // Verifica si el html y el css existen
+        const htmlExists = await fs.access(htmlFilePath).then(() => true).catch(() => false);
+        const cssExists = await fs.access(cssFilePath).then(() => true).catch(() => false);
+
+        if (htmlExists && cssExists) {
+
+          // Obtenemos el tamaño relativo del template
+          const { width, height } = await fetch(`http://localhost:3500/template/${template}/imageSize?event=${event}`)
+            .then((response) => {
+
+              if (!response.ok) {
+                throw new Error("Falló la consulta")
+              }
+              return response.json();
+            })
+            .then((data) => {
+              return data
+            })
+            .catch((error) => {
+              console.error(error)
+            })
+
+          const browser = await launch({ headless: 'new', args: ['--disable-features=FontsOnDemand'], });
+          const page = await browser.newPage();
+
+          // URL de tu página HTML generada dinámicamente
+          const dynamicPageURL = `http://localhost:3500/template/${template}/image?event=${event}`;
+
+          await page.goto(dynamicPageURL, { waitUntil: 'networkidle0' });
+
+
+          // Verifica si las conversiones son válidas
+          if (!isNaN(width) && !isNaN(height)) {
+            // Si los valores son números válidos los seteamos
+            await page.setViewport({ width: width, height: height });
+          } else {
+            res.status(400).send({ message: "Los valores de ancho y alto no son números válidos." })
+          }
+
+          // Captura una captura de pantalla y conviértela en formato base64
+          // const screenshot = await page.screenshot({ encoding: 'base64' });
+          await page.screenshot({ path: filePath, type: 'png' });
+
+          await browser.close();
+
+          // Devuelve la captura de pantalla como respuesta
+          /*
+          res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Content-Length': screenshot.length
+          });
+          res.end(Buffer.from(screenshot, 'base64'));
+          */
+          res.sendFile(filePath);
+        } else {
+          res.status(404).send({ message: "No se encontró el template" })
+        }
+      }
+    } else {
+      res.status(404).json({ error: "No se encontró el template" });
     }
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error interno del servidor" });
@@ -170,7 +253,7 @@ router.get('/:template/:event/:participant', async (req, res) => {
     if (isMainThread) {
       // Crea un nuevo hilo de trabajador para procesar el envío a todos
 
-      console.log({isMainThread})
+      console.log({ isMainThread })
 
       const worker = new Worker(`${__dirname}/worker.js`, {
         workerData: { template, event, participant },
@@ -182,7 +265,7 @@ router.get('/:template/:event/:participant', async (req, res) => {
       });
     } else {
 
-      console.log({else: "else"})
+      console.log({ else: "else" })
 
       try {
         // Extraemos los datos para poder traer la info
@@ -228,6 +311,8 @@ router.get('/:template/:event/:participant', async (req, res) => {
                 try {
                   // Generamos o traemos la imagen del participante
                   const responseImage = await fetch(`http://localhost:3500/images?file=${template}-${event}-${currentParticipant.individual_id}.png`)
+
+                  console.log(responseImage)
 
                   let errors = []
 

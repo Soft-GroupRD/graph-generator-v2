@@ -4,6 +4,7 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import imageRoutes from './routes/images.js';
 import { join } from 'path';
 import igwinTemplate from './routes/templates/igwin.js';
+import seasonpointsTemplate from './routes/templates/seasonpoints.js';
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -25,6 +26,7 @@ app.use('/fonts', express.static(join(__dirname, 'public')));
 app.use('/images', imageRoutes)
 
 app.use('/template/igwin', igwinTemplate)
+app.use('/template/seasonpoints', seasonpointsTemplate)
 
 app.listen(port, () => {
   console.log(`Servidor Node.js escuchando en el puerto ${port}`);

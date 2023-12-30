@@ -1,0 +1,376 @@
+/* Font-A-Black */
+@font-face {
+  font-family: "Font-A-Black";
+  src: url(/seasonpoints/assets/fonts/F1TV-2022-Black.ttf);
+}
+
+/* Font-B-Oblique-Condensed */
+@font-face {
+  font-family: "Font-B-Oblique-Condensed";
+  src: url(/seasonpoints/assets/fonts/F1TV-2022-ObliqueCondensed.ttf);
+}
+
+/* Font-B-Timing-Oblique */
+@font-face {
+  font-family: "Font-B-Timing-Oblique";
+  src: url(/seasonpoints/assets/fonts/F1TV-2022-Timing-Oblique.ttf);
+}
+
+/* Font-B-Timing-Oblique-Bold */
+@font-face {
+  font-family: "Font-B-Timing-Oblique-Bold";
+  src: url(/seasonpoints/assets/fonts/F1TV-2022-Timing-Oblique-Bold.ttf);
+}
+
+/* Font-B-Oblique-Bold-Pos */
+@font-face {
+  font-family: "Font-B-Oblique-Bold-Pos";
+  src: url(/seasonpoints/assets/fonts/F1TV-2022-ObliqueBold-Pos.ttf);
+}
+
+/* Font-B-Position */
+@font-face {
+  font-family: "Font-B-Position";
+  src: url(/seasonpoints/assets/fonts/F1TV-2022-Position.ttf);
+}
+
+/* Font-B-Oblique-Bold-Int */
+@font-face {
+  font-family: "Font-B-Oblique-Bold-Int";
+  src: url(/seasonpoints/assets/fonts/F1TV-2022-ObliqueBold-Int.ttf);
+}
+
+/* Font-B-Regular-Oblique */
+@font-face {
+  font-family: "Font-B-Regular-Oblique";
+  src: url(/seasonpoints/assets/fonts/F1TV-2022-Regular-Oblique.ttf);
+}
+
+/* Font-B-Oblique-Blod */
+@font-face {
+  font-family: "Font-B-Oblique-Blod";
+  src: url(/seasonpoints/assets/fonts/F1TV-2022-ObliqueBold.ttf);
+}
+
+/* Font-B-Logos */
+@font-face {
+  font-family: "Font-B-Logos";
+  src: url(/seasonpoints/assets/fonts/F1TV-2022-Logos.ttf);
+}
+
+/* Font-B-Regular */
+@font-face {
+  font-family: "Font-B-Regular";
+  src: url(/seasonpoints/assets/fonts/F1TV-2022-Regular.ttf);
+}
+
+/* Font-B-Bold */
+@font-face {
+  font-family: "Font-B-Bold";
+  src: url(/seasonpoints/assets/fonts/F1TV-2022-Bold.ttf);
+}
+
+/* Font-B-Regular-Bold */
+@font-face {
+  font-family: "Font-B-Regular-Bold";
+  src: url(/seasonpoints/assets/fonts/F1TVregularBold.ttf);
+}
+
+/* Font-B-Name */
+@font-face {
+  font-family: "Font-B-Name";
+  src: url(/seasonpoints/assets/fonts/F1TVname.ttf);
+}
+
+/* Font-B-Numbers */
+@font-face {
+  font-family: "Font-B-Numbers";
+  src: url(/seasonpoints/assets/fonts/F1TVnumbers.ttf);
+}
+
+/* Font-B-Display-Name */
+@font-face {
+  font-family: "Font-B-Display-Name";
+  src: url(/seasonpoints/assets/fonts/F1DisplayName.ttf);
+}
+
+/* Font-B-Turbo */
+@font-face {
+  font-family: "Font-B-Turbo";
+  src: url(/seasonpoints/assets/fonts/F1_Turbo.otf);
+}
+
+/* Font-B-Torque */
+@font-face {
+  font-family: "Font-B-Torque";
+  src: url(/seasonpoints/assets/fonts/F1_Torque.otf);
+}
+
+/* root variables colores */
+:root {
+  --color-black: #0b001b;
+  --color-morado: #d806ee;
+}
+
+/* CODE STYLE */
+
+/* formatear */
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+/* contenedor */
+.main-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* carta */
+.card {
+  width: 1080px;
+  height: 1080px;
+  position: relative;
+  overflow: hidden;
+  /* aspect-ratio: -1; */
+}
+
+/* estilos imagen */
+.img-bg {
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+/* contenidos */
+
+.content {
+  width: 1080px;
+  height: 1080px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 2em;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  /* background: yellow; */
+}
+
+.header {
+  width: 100%;
+  padding-left: 2em;
+  padding-right: 2em;
+
+  display: flex;
+  justify-content: space-between;
+}
+
+.logo {
+  width: 7em;
+}
+
+.logo-w-titulo {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+
+.arriba {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+
+.ciruclo {
+  background: #fff;
+  width: 10px;
+  height: 10px;
+  border-radius: 100%;
+}
+.h-morado {
+  color: var(--color-morado);
+  font-size: 2em;
+  font-family: "Font-B-Display-Name";
+  text-transform: uppercase;
+}
+
+.season {
+  color: var(--color-morado);
+  font-size: 2em;
+  font-family: "Font-B-Display-Name";
+  font-weight: 300;
+  text-transform: uppercase;
+}
+
+.titulo-driver {
+  color: #fff;
+  font-size: 3em;
+  font-family: "Font-B-Oblique-Blod";
+}
+
+.top-text {
+  color: #fff;
+  font-family: "Font-B-Display-Name";
+  padding-top: 0.5em;
+}
+
+/* DATOS CORREDORES */
+.data-corredores {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.list-corredores {
+  width: 720px;
+  height: max-content;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  /* background: yellowgreen; */
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+}
+
+.div-item {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* gap: 1em; */
+  /* background: yellow; */
+}
+
+.name-logo {
+  width: 610px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  background: rgb(11, 0, 27);
+  background: linear-gradient(
+    90deg,
+    rgba(11, 0, 27, 1) 35%,
+    rgba(216, 6, 238, 1) 140%
+  );
+  /* padding: 0.5em 0em 0.5em 2em; */
+  /* padding-left: 2em; */
+  /* padding-right: 1em; */
+  /* padding-top: 0.5em; */
+  /* padding-bottom: 0.5em; */
+  /* border-radius: 5px; */
+}
+
+.logo-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0em 1em 0em 1em;
+  border-right: 3px solid #d706ee7a;
+}
+
+.barra {
+  background: #d706ee7a;
+  width: 3px;
+  height: 100%;
+  /* border-radius: 5px; */
+}
+
+.logo-auto-corredor {
+  width: 3em;
+}
+
+.text-name-corredor {
+  width: 480px;
+  text-transform: uppercase;
+  color: #fff;
+  font-size: 2em;
+  font-family: "Font-B-Display-Name";
+  font-weight: 100;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  /* background-color: #d706ee48; */
+}
+
+.span-name {
+  font-family: "Font-B-Name";
+  font-weight: 600;
+}
+
+.number {
+  width: 95px;
+  background: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* padding-left: 1em; */
+  /* padding-right: 1em; */
+  height: 100%;
+  /* border-radius: 5px; */
+}
+
+.number p {
+  font-size: 2em;
+  font-family: "Font-B-Regular-Bold";
+}
+
+/* piloto */
+.piloto {
+  position: absolute;
+  top: 0;
+  /* left: 0; */
+  right: -11em;
+  z-index: 1;
+}
+
+/* footer */
+.footer {
+  width: 100%;
+  /* padding: 1em; */
+  /* background: yellowgreen; */
+  position: absolute;
+  bottom: -1em;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 1em;
+}
+
+.fotos-patrocinadores {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+}
+
+.patrocinadores {
+  width: 170px;
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2em;
+  color: #fff;
+  font-family: "Font-B-Numbers";
+  background: #0b001b83;
+}
+
+.enlace {
+  font-size: 0.8em;
+  color: #fff;
+  text-transform: uppercase;
+  font-family: "Font-B-Position";
+  letter-spacing: 1em;
+}
