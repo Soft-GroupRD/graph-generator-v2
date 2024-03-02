@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: 'gpapp_main',
+    name: 'igv2-graph-generator',
     script: 'npm',
     args: 'run start',
     watch: true,
