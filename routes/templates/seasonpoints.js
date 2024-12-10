@@ -6,11 +6,24 @@ import { load } from 'cheerio';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import fetch from 'node-fetch';
+import sharp from 'sharp';
+import path from 'path';
 
 const router = Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
+async function resizeImage(inputPath, outputPath, width, height) {
+  try {
+    await sharp(inputPath)
+      .resize({ width, height, fit: 'contain' })
+      .toFile(outputPath);
+    console.log(`Image resized successfully: ${outputPath}`);
+    return outputPath;
+  } catch (error) {
+    console.error(`Error resizing image: ${error.message}`);
+    return null;
+  }
+}
 /**
  * @swagger
  * /template/seasonpoints/image:
@@ -31,193 +44,214 @@ const __dirname = dirname(__filename);
  *       500:
  *         description: Error del servidor
  */
+
+
+/**
+ * Función de utilidad para manejar fetch con manejo de errores.
+ * @param {string} url - URL a la que se hace el fetch.
+ * @returns {Promise<any>} - Respuesta JSON del fetch.
+ */
+async function fetchWithRetry(url, errorMessage) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`${errorMessage}. Código de estado: ${response.status}`);
+    }
+    const data = await response.json();
+    if (!data) {
+      throw new Error(`${errorMessage}. Respuesta vacía o inválida.`);
+    }
+    return data;
+  } catch (error) {
+    console.error(`Error al realizar fetch: ${url}`, error.message);
+    throw error;
+  }
+}
+
+/**
+ * Endpoint para obtener la imagen con los parámetros proporcionados.
+ */
+
+
 router.get('/image', async (req, res) => {
   try {
-    const { event } = req.query
+    const { event } = req.query;
 
     if (!event) {
       res.status(400).json({ error: "Faltan parámetros: template, event" });
       return;
     }
 
-    // Buscamos el template
     const htmlFilePath = join(__dirname, `../../public/seasonpoints`, 'index.html');
     const cssFilePath = join(__dirname, `../../public/seasonpoints/css`, "estilos.css");
 
-    // Verifica si el html y el css existen
     const htmlExists = await fs.access(htmlFilePath).then(() => true).catch(() => false);
     const cssExists = await fs.access(cssFilePath).then(() => true).catch(() => false);
 
-    if (htmlExists && cssExists) {
-      // Lee el contenido de los archivos HTML y CSS de manera asíncrona
-      const htmlContent = await fs.readFile(htmlFilePath, 'utf-8')
-      const cssContent = await fs.readFile(cssFilePath, 'utf-8')
+    if (!htmlExists || !cssExists) {
+      res.status(404).send({ message: "No se encontró el template" });
+      return;
+    }
 
-      const information = await fetch(`https://api4.gpesportsrd.com/season_status/pilot_points?project_id=${event}`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Fallo al buscar el evento");
-          }
-          return response.json();
-        })
-        .then(async (data) => {
+    const htmlContent = await fs.readFile(htmlFilePath, 'utf-8');
+    const cssContent = await fs.readFile(cssFilePath, 'utf-8');
 
-          if (!data) {
-            throw new Error("No se encontraron participantes");
-          }
+    const rawData = await fetchWithRetry(
+      `https://api4.gpesportsrd.com/season_status/pilot_points?project_id=${event}`,
+      "Fallo al buscar el evento"
+    );
 
-          const filterData = data.sort((a, b) => b.total_points - a.total_points).slice(0, 10);
+    const topDrivers = rawData
+      .sort((a, b) => b.total_points - a.total_points)
+      .slice(0, 10);
 
-          if (!filterData) {
-            throw new Error("No se encontraron participantes");
-          }
-
-          const moreInformation = await Promise.all(filterData.map(async (driver) => {
-            try {
-              const findTeam = await fetch(`https://api4.gpesportsrd.com/fieldValues?field_id=${54}&item_id=${driver.team_id}`);
-
-              if (!findTeam.ok) {
-                throw new Error("Fallo al buscar la información del team");
-              }
-
-              const data = await findTeam.json();
-
-              if (data.data.length === 0) {
-                const defaultTeam = await fetch(`https://api4.gpesportsrd.com/fieldValues?field_id=${54}&item_id=${32}`);
-                const dataDefaultTeam = await defaultTeam.json();
-                data.data = dataDefaultTeam.data
-              }
-
-              return {
-                ...driver,
-                teamData: data.data[0]
-              };
-            } catch (error) {
-              console.error("Ocurrió un error:", error);
+      const enrichedDrivers = await Promise.all(
+        topDrivers.map(async (driver) => {
+          try {
+            console.log(`Processing driver: ${JSON.stringify(driver, null, 2)}`); // Log each driver before processing
+      
+            if (!driver.team_id) {
+              console.warn(`team_id missing for driver: ${driver.first_name} ${driver.last_name}`);
               return null;
             }
-          }));
-
-
-          if (!moreInformation) {
-            throw new Error("No se encontró más informacion");
+      
+            const teamData = await fetchWithRetry(
+              `https://api4.gpesportsrd.com/fieldValues?field_id=37&item_id=${driver.team_id}`,
+              `Failed to fetch team data for driver: ${driver.first_name} ${driver.last_name}`
+            );
+  
+            if (teamData.data?.[0]?.value) {
+              const teamLogoUrl = `https://gpesportsrd.com/${teamData.data[0].value}`;
+              const outputPath = join(__dirname, `../../public/processed_images/team_${driver.team_id}.png`);
+  
+              // Resize the team logo using Sharp
+              await resizeImage(teamLogoUrl, outputPath, 100, 100);
+              teamData.data[0].processedValue = outputPath; // Add processed path
+            }
+      
+            console.log(`Fetched team data for driver ${driver.first_name}: ${JSON.stringify(teamData, null, 2)}`); // Log team data
+      
+            return {
+              ...driver,
+              teamData: teamData.data?.[0] || null,
+            };
+          } catch (error) {
+            console.error(`Error processing driver ${driver.first_name}: ${error.message}`);
+            return null;
           }
-
-          return moreInformation
         })
-        .catch((error) => {
-          console.error("Ocurrió un error:", error);
-          // Manejo de errores
-        });
+      );
+      
+      // Log the final enrichedDrivers array
+      console.log("Enriched Drivers Array:", JSON.stringify(enrichedDrivers, null, 2));
 
-      // Carga el HTML en Cheerio
-      const $ = load(htmlContent);
-
-      const individualInformation = information[0]
-
-      let sponsorsList = []
-
-      if (individualInformation?.project_sponsors) {
-        const sponsorsListJson = JSON.parse(individualInformation.project_sponsors);
-        if(sponsorsListJson.length > 0) {
-          sponsorsList = sponsorsListJson
-        }
+      const sponsorsRaw = await fetchWithRetry(
+        `https://api4.gpesportsrd.com/fieldValues?field_id=55`,
+        "Fallo al buscar los sponsors"
+      );
+      
+      // Add console logs to inspect the response and validate the data
+      console.log("Sponsors API URL:", `https://api4.gpesportsrd.com/fieldValues?field_id=55`);
+      
+      try {
+        console.log("Raw Sponsors Response:", JSON.stringify(sponsorsRaw, null, 2)); // Inspect raw response
+      } catch (error) {
+        console.error("Error parsing sponsors response:", error.message); // Handle unexpected response
       }
+      
+      const sponsors = sponsorsRaw.data || [];
+      console.log("Parsed Sponsors Data:", JSON.stringify(sponsors, null, 2));
 
-      const sponsors = await fetch(`https://api4.gpesportsrd.com/fieldValues?field_id=55`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Fallo al buscar los sponsors");
-          }
-          return response.json();
-        })
-        .then(async (data) => {
+    const $ = load(htmlContent);
 
-          if (!data) {
-            throw new Error("No se encontraron datos");
-          }
+    // Actualización de DOM
+    const individualInformation = enrichedDrivers[0];
+    const sponsorsList = individualInformation?.project_sponsors
+      ? JSON.parse(individualInformation.project_sponsors)
+      : [];
 
-          return data.data
-        })
-        .catch((error) => {
-          console.error("Ocurrió un error:", error);
-          // Manejo de errores
-        });
+    if (individualInformation.project_name.includes("-")) {
+      const [name, season] = individualInformation.project_name.split("-");
+      $('.h-morado').text(name);
+      $('.season').text(season);
+    } else {
+      $('.h-morado').text(individualInformation.project_name);
+      $('.ciruclo').remove();
+      $('.season').remove();
+    }
 
-      if (individualInformation.project_name.includes("-")) {
-        const [name, season] = individualInformation.project_name.split("-")
+    $('.list-corredores').each((index, driver) => {
+      for (let i = 0; i < enrichedDrivers.length; i++) {
+        const itemId = i + 1;
+        const driverInfo = enrichedDrivers[i];
+        if (!driverInfo) continue;
 
-        if (name && season) {
-          $('.h-morado').text(`${name}`);
-          $('.season').text(`${season}`);
-        }
-      } else {
-        $('.h-morado').text(`${individualInformation.project_name}`);
-        $('.ciruclo').remove();
-        $('.season').remove();
+        const divItem = $(driver).find(`.div-item-${itemId}`);
+        divItem.find('.logo-auto-corredor').attr('src', `https://gpesportsrd.com/${driverInfo.teamData?.value}`);
+        divItem.find('.text-name-corredor').html(`${driverInfo.first_name || "unknown"} <span class="span-name">${driverInfo.last_name || "unknown"}</span>`);
+        divItem.find('.number p').text(driverInfo.total_points || "0");
       }
+    });
+    console.log("Sponsors List:", sponsorsList);
 
-      $('.list-corredores').each((index, driver) => {
-        // Itera sobre los divs dentro de cada "list-corredores" con la clase "div-item-1" a "div-item-10"
-        for (let i = 0; i <= information.length; i++) {
-          const itemId = i + 1
-          const driverInformation = information[i]
-
-          const divItem = $(driver).find(`.div-item-${itemId}`);
-
-          // Accede a la clase "logo-box" dentro de cada div-item
-          const logoBox = divItem.find('.logo-box');
-
-          // Accede a la clase "logo-auto-corredor" que es hijo de "logo-box"
-          const logoAutoDriver = logoBox.find('.logo-auto-corredor');
-
-          // cambiamos el src del logo
-          logoAutoDriver.attr('src', `https://gpesportsrd.com/${driverInformation?.teamData?.value}`);
-
-          // accedemos a la box del name
-          const nameDriver = divItem.find('.name-corredor')
-
-          const textName = nameDriver.find('.text-name-corredor')
-
-          // Usamos .html() para mantener el formato HTML
-          textName.html(`${driverInformation?.first_name || "unknown"} <span class="span-name">${driverInformation?.last_name || "unknown"}</span>`);
-
-          // Accedemos a los puntos
-          const points = divItem.find('.number');
-
-          //Accedemos al texto
-          const textPoints = points.find('p');
-          textPoints.text(`${driverInformation?.total_points || "0"}`)
+    if (sponsorsList.length > 0) {
+      console.log("Sponsors List IDs:", sponsorsList);
+      console.log("Sponsors Data:", JSON.stringify(sponsors, null, 2));
+    
+      $('.fotos-patrocinadores').each((index, sponsorContainer) => {
+        for (let i = 0; i < sponsorsList.length; i++) {
+          // Find the sponsor data by matching the item ID
+          const sponsorData = sponsors.find((s) => s.item_id === sponsorsList[i].toString());
+          if (!sponsorData) {
+            console.warn(`No sponsor found for ID: ${sponsorsList[i]}`);
+            continue;
+          }
+    
+          // Construct the image path for the sponsor
+          const sponsorImagePath = `https://gpesportsrd.com${sponsorData.value}`;
+          console.log(`Sponsor image path: ${sponsorImagePath}`);
+    
+          const itemId = i + 1; // Sponsor box ID starts from 1
+          const sponsorBox = $(sponsorContainer).find(`.patrocinador-${itemId}`);
+    
+          // Replace "P" with the sponsor image
+          sponsorBox.html(`<img src="${sponsorImagePath}" style="width: 100%; height: 100%;">`);
+          console.log(`Updated .patrocinador-${itemId} with sponsor image.`);
         }
       });
-
-      if (sponsorsList.length > 0) {
-        $('.fotos-patrocinadores').each((index, sponsor) => {
-          // Itera sobre los divs dentro de cada "fotos-patrocinadores"
-          for (let i = 0; i < sponsorsList.length; i++) {
-
-            const findSponsor = sponsors.find(sponsor => sponsor.itemId = sponsorsList[i].toString())
-
-            const itemId = i + 1
-
-            // Selecciona el elemento específico dentro de cada iteración
-            const sponsorP = $(sponsor).find(`.patrocinador-${itemId}`);
-
-            // Usa .html() para establecer el contenido HTML específico
-            sponsorP.html(`<img src="https://gpesportsrd.com/${findSponsor?.value}" style="width: 100%; height: 100%;">`);
-          }
-        });
-      }
-
-      $('<style>').text(cssContent).appendTo('head');
-
-      // Imprime el HTML modificado
-      const modifiedHTML = $.html();
-
-      res.send(modifiedHTML);
-    } else {
-      res.status(404).send({ message: "No se encontró el template" })
+    
+      // Log the final HTML to verify updates
+      console.log("Modified HTML after sponsors update:", $.html());
     }
+
+    $('<style>').text(cssContent).appendTo('head');
+    res.send($.html());
+  } catch (error) {
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+/**
+ * Endpoint para obtener el tamaño del template.
+ */
+router.get('/imageSize', async (req, res) => {
+  try {
+    const { event } = req.query;
+
+    if (!event) {
+      res.status(400).json({ error: "Faltan parámetros: template, event" });
+      return;
+    }
+
+    const htmlFilePath = join(__dirname, `../../public/seasonpoints`, 'index.html');
+    const htmlExists = await fs.access(htmlFilePath).then(() => true).catch(() => false);
+
+    if (!htmlExists) {
+      res.status(404).send({ message: "No se encontró el template" });
+      return;
+    }
+
+    res.json({ width: 1080, height: 1080 });
   } catch (error) {
     res.status(500).json({ error: "Error interno del servidor" });
   }
